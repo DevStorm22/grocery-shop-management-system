@@ -24,11 +24,12 @@ export async function POST(req: Request) {
         const token = jwt.sign(
             {
                 userId: user._id,
-                role: user._role,
+                role: user.role,
             },
             process.env.JWT_SECRET!,
             { expiresIn: "7d" }
         );
+        
         return NextResponse.json({
             status: 200,
             message: "Login successful",
