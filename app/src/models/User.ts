@@ -24,12 +24,6 @@ const userSchema = new mongoose.Schema({
         required: true,
         minlength: 8,
         maxlength: 100,
-        validate: {
-            validator: (value: string) => {
-                return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(value);
-            },
-            message: "Invalid password"
-        }
     },
     role: {
         type: String,
