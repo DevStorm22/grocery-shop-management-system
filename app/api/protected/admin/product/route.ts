@@ -1,6 +1,7 @@
 import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
 import { Product } from "@/app/src/models/Product";
+import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -45,8 +46,8 @@ export async function POST(req: NextRequest) {
         );
     } catch(error) {
         return NextResponse.json(
-            { status: 500, message: "Internal server error", error: error },
-            { status: 500 }
+            { status: 500, message: "Internal server error", error, },
+            { status: 500, },
         )
     }
 }
