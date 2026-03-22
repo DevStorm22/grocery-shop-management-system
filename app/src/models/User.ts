@@ -28,10 +28,10 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         enum: ['admin', 'staff', 'customer'],
-        default: 'customer',
+        required: true,
     },
 },{ timestamps: true }
 );
 
 // Reuse the existing model if it was already registered (prevents overwrite errors in hot reload).
-export const User = (mongoose.models.User as mongoose.Model<any>) || mongoose.model("User", userSchema);
+export const User = mongoose.models.User || mongoose.model("User", userSchema);

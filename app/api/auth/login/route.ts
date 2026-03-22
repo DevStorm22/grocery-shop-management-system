@@ -10,22 +10,20 @@ export async function POST(req: Request) {
         await connectDB();
         const user = await User.findOne({ email });
         if(!user) {
-            return NextResponse.json({
-                status: 400, message: "Email not found"
-            });
+            return NextResponse.json(
+                { status: 400, message: "Email not found" },
+                { status: 400 },
+            );
         }
         const isMatch = await bcrypt.compare(password, user.password);
         if(!isMatch) {
-            return NextResponse.json({
-                status: 500,
-                message: "Password Invalid"
-            });
+            return NextResponse.json(
+                { status: 500, message: "Password Invalid" },
+                { status: 500 },
+            );
         }
         const token = jwt.sign(
-            {
-                userId: user._id,
-                role: user.role,
-            },
+            { userId: user._id, role: user.role, },
             process.env.JWT_SECRET!,
             { expiresIn: "7d" }
         );
@@ -34,6 +32,7 @@ export async function POST(req: Request) {
             status: 200,
             message: "Login successful",
             token,
+            role: user.role,
         });
     } catch (error) {
         return NextResponse.json({
