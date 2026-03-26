@@ -29,14 +29,19 @@ export async function POST(req: Request) {
         const body = await req.json();
 
         const { productId, quantity } = body;
-        if(!mongoose.Types.ObjectId.isValid(productId))
+        if(!productId || !mongoose.Types.ObjectId.isValid(productId))
         {
             return NextResponse.json(
                 { status: 400, message: "Invalid product Id" },
                 { status: 400 },
             );
         }
-
+        if(!quantity || quantity < 1) {
+            return NextResponse.json(
+                {status: 400, message: "Quantity must be at least 1",},
+                {status: 400,},
+            );
+        }
         const product = await Product.findById(productId);
         if(!product || !product.isAvailable) {
             return NextResponse.json(
@@ -48,11 +53,11 @@ export async function POST(req: Request) {
         if(!cart) {
             cart = await Cart.create({
                 user: userId,
-                items: [ { products: productId, quantity } ],
+                items: [ { product: productId, quantity } ],
             });
         } else {
             const itemIndex = cart.items.findIndex(
-                (items: any) => items.product.toString() === productId
+                (items: any) => items.product.toString() === productId.toString()
             );
             if(itemIndex > -1) {
                 cart.items[itemIndex].quantity += quantity; 
@@ -86,13 +91,14 @@ export async function GET(req: Request) {
         }
         const token = authHeader.split(" ")[1];
         const decoded = verifyToken(token);
+        const userId = decoded?.userId;
         if(!decoded) {
             return NextResponse.json(
                 { status: 401, message: "invalid Token" },
                 { status: 401 },
             );
         }
-        const cartItems = await Cart.find();
+        const cartItems = await Cart.findOne({ user: userId});
         return NextResponse.json(
             {status: 200, message: "Cart Items", cartItems,},
             {status: 200,},
@@ -148,7 +154,7 @@ export async function PUT(req: Request) {
         }
 
         const itemIndex = cart.items.findIndex(
-            (item: any) => item.products.toString() === productId
+            (item: any) => item.product.toString() === productId
         );
 
         if (itemIndex === -1) {
@@ -210,7 +216,7 @@ export async function DELETE(req: Request) {
         }
 
         cart.items = cart.items.filter(
-            (item: any) => item.products.toString() !== productId
+            (item: any) => item.product.toString() !== productId
         );
 
         await cart.save();
