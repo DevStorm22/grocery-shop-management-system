@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
                 { status: 401 },
             );
         }
-        if(decoded.role !== "admin") {
+        if(decoded.role !== "ADMIN") {
             return NextResponse.json(
                 { status: 403, message: "Only admin can access this!!" },
                 { status: 403 },
