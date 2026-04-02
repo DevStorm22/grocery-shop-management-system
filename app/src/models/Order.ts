@@ -25,15 +25,9 @@ const orderSchema = new mongoose.Schema({
     required: true,
   },
 
-  paymentMethod: {
-    type: String,
-    enum: ["COD", "ONLINE"],
-    required: true,
-  },
-
   paymentStatus: {
     type: String,
-    enum: ["PENDING", "PAID", "FAILED"],
+    enum: ["PENDING", "PAID"],
     default: "PENDING",
   },
 
@@ -41,6 +35,22 @@ const orderSchema = new mongoose.Schema({
     type: String,
     enum: ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED",],
     default: "PLACED",
+  },
+
+  statusHistory: {
+    type: [
+      {
+        status: {
+          type: String,
+          enum: ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"],
+        },
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    default: [],
   },
 
   deliveryAddress: {
