@@ -4,6 +4,7 @@ import { Cart } from "@/app/src/models/Cart";
 import { Product } from "@/app/src/models/Product";
 import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
+import { createOrderSchema } from "@/app/src/validations/order.validation";
 
 export async function POST(req: Request) {
     try {
@@ -55,19 +56,29 @@ export async function POST(req: Request) {
                 quantity: item.quantity,
             });
         }
-        const { deliveryAddress } = await req.json();
-        if (!deliveryAddress) {
+        const body = await req.json();
+
+        const parsed = createOrderSchema.safeParse(body);
+
+        if (!parsed.success) {
             return NextResponse.json(
-                { status: 400, message: "Address required", },
-                { status: 400, },
+                {
+                    status: 400,
+                    message: "Validation failed",
+                    errors: parsed.error.flatten(),
+                },
+                { status: 400 }
             );
         }
+
+        const { deliveryAddress } = parsed.data;
+
         const order = await Order.create({
             user: userId,
             items: orderItems,
             totalAmount,
             deliveryAddress,
-            orderStatus: "PLACED",   // ✅ correct
+            orderStatus: "PLACED",
             statusHistory: [
               {
                 status: "PLACED",
