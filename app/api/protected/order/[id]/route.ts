@@ -2,6 +2,7 @@ import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
 import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
+import { orderIdSchema } from "@/app/src/validations/order.validation";
 
 export async function GET(
   req: Request,
@@ -12,7 +13,20 @@ export async function GET(
 
     const { id } = await context.params;
 
-    console.log("Params id:", id);
+    const parsed = orderIdSchema.safeParse({ id });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          status: 400,
+          message: "Invalid order ID",
+          errors: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const validId = parsed.data.id;
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -32,7 +46,7 @@ export async function GET(
       );
     }
 
-    const order = await Order.findById(id).populate("items.product");
+    const order = await Order.findById(validId).populate("items.product");
 
     if (!order) {
       return NextResponse.json(
