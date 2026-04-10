@@ -3,6 +3,7 @@ import { connectDB } from "@/app/src/lib/db";
 import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
 import { orderIdSchema } from "@/app/src/validations/order.validation";
+import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
 
 export async function GET(
   req: Request,
@@ -30,52 +31,33 @@ export async function GET(
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { status: 401, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const token = authHeader.split(" ")[1];
     const decoded: any = verifyToken(token);
 
     if (!decoded?.userId) {
-      return NextResponse.json(
-        { status: 401, message: "Invalid token" },
-        { status: 401 }
-      );
+      return errorResponse("Invalid token", 401, "INVALID_TOKEN");
     }
 
     const order = await Order.findById(validId).populate("items.product");
 
     if (!order) {
-      return NextResponse.json(
-        { status: 404, message: "Order not found" },
-        { status: 404 }
-      );
+      return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
     }
 
     if (order.user.toString() !== decoded.userId) {
-      return NextResponse.json(
-        { status: 403, message: "Forbidden" },
-        { status: 403 }
-      );
+      return errorResponse("Forbidden", 403, "FORBIDDEN");
     }
 
-    return NextResponse.json({
-      status: 200,
-      message: "Order details fetched",
-      order,
-    });
+    return successResponse("Order details fetched", { order });
 
   } catch (error: any) {
-    return NextResponse.json(
-      {
-        status: 500,
-        message: "Internal server error",
-        error: error.message,
-      },
-      { status: 500 }
+    return errorResponse(
+      "Internal server error",
+      500,
+      error.message || "SERVER_ERROR"
     );
   }
 }
