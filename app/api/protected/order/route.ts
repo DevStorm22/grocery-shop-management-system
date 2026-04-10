@@ -1,9 +1,13 @@
 import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
+import { Cart } from "@/app/src/models/Cart";
+import { Product } from "@/app/src/models/Product";
+import { Order } from "@/app/src/models/Order";
+import { createOrderSchema } from "@/app/src/validations/order.validation";
+import mongoose from "mongoose";
+import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
 import { OrderService } from "@/app/src/services/order.service";
 import { asyncHandler } from "@/app/src/lib/asyncHandler";
-import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
-import { createOrderSchema } from "@/app/src/validations/order.validation";
 
 export const POST = asyncHandler(async (req: Request) => {
     await connectDB();
@@ -27,7 +31,7 @@ export const POST = asyncHandler(async (req: Request) => {
 
     if (!parsed.success) {
         return errorResponse(
-            parsed.error.errors[0].message,
+            parsed.error.issues[0].message,
             400,
             "VALIDATION_ERROR"
         );
