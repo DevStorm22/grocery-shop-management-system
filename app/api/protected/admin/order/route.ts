@@ -1,9 +1,9 @@
 import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
 import { Order } from "@/app/src/models/Order";
-import { NextResponse } from "next/server";
 import { paginationSchema } from "@/app/src/validations/order.validation";
 import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
+import OrderService from "@app/src/services/order.service";
 
 export async function GET(req: Request) {
     try {
@@ -113,7 +113,7 @@ export async function PATCH(req: Request) {
         }
 
         // 🔍 Find Order
-        const order = await Order.findById(orderId);
+        const order = await OrderService.getOrderById(id, userId);
 
         if (!order) {
             return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
