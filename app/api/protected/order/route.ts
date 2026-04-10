@@ -6,47 +6,41 @@ import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
 import { createOrderSchema } from "@/app/src/validations/order.validation";
 import mongoose from "mongoose";
+import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
 
 export async function POST(req: Request) {
     try {
         await connectDB();
         const authHeader = req.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { status: 401, message: "Unauthorized", },
-                { status: 401, },
-            );
+            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
         }
         const token = authHeader.split(" ")[1];
         const decoded: any = verifyToken(token);
         if (!decoded || !decoded.userId) {
-            return NextResponse.json(
-                { status: 401, message: "Invalid token", },
-                { status: 401, },
-            );
+            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
         }
         const userId = decoded.userId;
         const cart = await Cart.findOne({ user: userId }).populate("items.product");
         if (!cart || cart.items.length === 0) {
-            return NextResponse.json(
-                { status: 400, message: "Cart is empty", },
-                { status: 400, },
-            );
+            return errorResponse("Cart is empty", 400, "EMPTY_CART");
         }
         let totalAmount = 0;
         const orderItems: any[] = [];
         for (const item of cart.items) {
             const product: any = item.product;
             if (!product || !product.isAvailable) {
-                return NextResponse.json(
-                    { status: 400, message: `Product unavailable: ${product?.name}`, },
-                    { status: 400, },
+                return errorResponse(
+                    `Product unavailable: ${product?.name}`,
+                    400,
+                    "PRODUCT_UNAVAILABLE"
                 );
             }
             if (product.stock < item.quantity) {
-                return NextResponse.json(
-                    { status: 400, message: `Insufficient stock for ${product.name}`, },
-                    { status: 400, },
+                return errorResponse(
+                    `Insufficient stock for ${product.name}`,
+                    400,
+                    "INSUFFICIENT_STOCK"
                 );
             }
             totalAmount += product.price * item.quantity;
@@ -62,14 +56,7 @@ export async function POST(req: Request) {
         const parsed = createOrderSchema.safeParse(body);
 
         if (!parsed.success) {
-            return NextResponse.json(
-                {
-                    status: 400,
-                    message: "Validation failed",
-                    errors: parsed.error.flatten(),
-                },
-                { status: 400 }
-            );
+            return errorResponse("Validation failed", 400, "VALIDATION_ERROR");
         }
 
         const { deliveryAddress } = parsed.data;
@@ -117,14 +104,16 @@ export async function POST(req: Request) {
         });
 
         session.endSession();
-        return NextResponse.json(
-            { status: 201, message: "Order placed successfully", order: order[0], },
-            { status: 201, },
+        return successResponse(
+            "Order placed successfully",
+            { order: order[0] },
+            201
         );
-    } catch (error) {
-        return NextResponse.json(
-            { status: 500, message: "Internal server error", error, },
-            { status: 500, },
+    } catch (error: any) {
+        return errorResponse(
+            "Internal server error",
+            500,
+            error.message || "SERVER_ERROR"
         );
     }
 }
@@ -133,14 +122,12 @@ export async function PUT(req: Request) {
     try {
         await connectDB();
         const orders = await Order.find().populate("user", "name email").sort({ createdAt: -1 });
-        return NextResponse.json(
-            { status: 200, message: "All orders fetched", orders, },
-            { status: 200, },
-        );
-    } catch (error) {
-        return NextResponse.json(
-            { status: 500, message: "Internal server error", error, },
-            { status: 500, },
+        return successResponse("All orders fetched", { orders });
+    } catch (error: any) {
+        return errorResponse(
+            "Internal server error",
+            500,
+            error.message || "SERVER_ERROR"
         );
     }
 }
