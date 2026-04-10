@@ -4,6 +4,7 @@ import { Order } from "@/app/src/models/Order";
 import { Product } from "@/app/src/models/Product";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
+import { orderIdSchema } from "@/app/src/validations/order.validation";
 
 export async function PATCH(
   req: Request,
@@ -15,6 +16,22 @@ export async function PATCH(
     await connectDB();
 
     const { id } = await context.params;
+
+    // ✅ Zod validation
+    const parsed = orderIdSchema.safeParse({ id });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          status: 400,
+          message: "Invalid order ID",
+          errors: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const validId = parsed.data.id;
 
     // 🔐 AUTH
     const authHeader = req.headers.get("authorization");
@@ -36,7 +53,7 @@ export async function PATCH(
     }
 
     await session.withTransaction(async () => {
-      const order = await Order.findById(id).session(session);
+      const order = await Order.findById(validId).session(session);
 
       if (!order) {
         throw new Error("ORDER_NOT_FOUND");
