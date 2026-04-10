@@ -1,122 +1,48 @@
 import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
-import { Cart } from "@/app/src/models/Cart";
-import { Product } from "@/app/src/models/Product";
-import { Order } from "@/app/src/models/Order";
-import { NextResponse } from "next/server";
-import { createOrderSchema } from "@/app/src/validations/order.validation";
-import mongoose from "mongoose";
+import { OrderService } from "@/app/src/services/order.service";
+import { asyncHandler } from "@/app/src/lib/asyncHandler";
 import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
+import { createOrderSchema } from "@/app/src/validations/order.validation";
 
-export async function POST(req: Request) {
-    try {
-        await connectDB();
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
-        }
-        const token = authHeader.split(" ")[1];
-        const decoded: any = verifyToken(token);
-        if (!decoded || !decoded.userId) {
-            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
-        }
-        const userId = decoded.userId;
-        const cart = await Cart.findOne({ user: userId }).populate("items.product");
-        if (!cart || cart.items.length === 0) {
-            return errorResponse("Cart is empty", 400, "EMPTY_CART");
-        }
-        let totalAmount = 0;
-        const orderItems: any[] = [];
-        for (const item of cart.items) {
-            const product: any = item.product;
-            if (!product || !product.isAvailable) {
-                return errorResponse(
-                    `Product unavailable: ${product?.name}`,
-                    400,
-                    "PRODUCT_UNAVAILABLE"
-                );
-            }
-            if (product.stock < item.quantity) {
-                return errorResponse(
-                    `Insufficient stock for ${product.name}`,
-                    400,
-                    "INSUFFICIENT_STOCK"
-                );
-            }
-            totalAmount += product.price * item.quantity;
-            orderItems.push({
-                product: product._id,
-                name: product.name,
-                price: product.price,
-                quantity: item.quantity,
-            });
-        }
-        const body = await req.json();
+export const POST = asyncHandler(async (req: Request) => {
+    await connectDB();
 
-        const parsed = createOrderSchema.safeParse(body);
+    // 🔐 AUTH
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
+    }
 
-        if (!parsed.success) {
-            return errorResponse("Validation failed", 400, "VALIDATION_ERROR");
-        }
+    const token = authHeader.split(" ")[1];
+    const decoded: any = verifyToken(token);
 
-        const { deliveryAddress } = parsed.data;
+    if (!decoded?.userId) {
+        return errorResponse("Invalid token", 401, "INVALID_TOKEN");
+    }
 
-        const session = await mongoose.startSession();
+    // 📦 VALIDATION (ZOD)
+    const body = await req.json();
+    const parsed = createOrderSchema.safeParse(body);
 
-        let order: any[] = [];
-
-        await session.withTransaction(async () => {
-            // 🧾 Create order
-            order = await Order.create(
-                [
-                    {
-                        user: userId,
-                        items: orderItems,
-                        totalAmount,
-                        deliveryAddress,
-                        orderStatus: "PLACED",
-                        statusHistory: [
-                            {
-                                status: "PLACED",
-                                updatedAt: new Date(),
-                            },
-                        ],
-                    },
-                ],
-                { session }
-            );
-
-            // 📦 Reduce stock
-            for (const item of cart.items) {
-                await Product.findByIdAndUpdate(
-                    item.product._id,
-                    { $inc: { stock: -item.quantity } },
-                    { session }
-                );
-            }
-
-            // 🛒 Clear cart
-            await Cart.findOneAndUpdate(
-                { user: userId },
-                { $set: { items: [] } },
-                { session }
-            );
-        });
-
-        session.endSession();
-        return successResponse(
-            "Order placed successfully",
-            { order: order[0] },
-            201
-        );
-    } catch (error: any) {
+    if (!parsed.success) {
         return errorResponse(
-            "Internal server error",
-            500,
-            error.message || "SERVER_ERROR"
+            parsed.error.errors[0].message,
+            400,
+            "VALIDATION_ERROR"
         );
     }
-}
+
+    const { deliveryAddress } = parsed.data;
+
+    // 🧠 SERVICE CALL
+    const order = await OrderService.createOrder(
+        decoded.userId,
+        deliveryAddress
+    );
+
+    return successResponse("Order placed successfully", { order }, 201);
+});
 
 export async function PUT(req: Request) {
     try {
