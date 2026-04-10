@@ -3,26 +3,21 @@ import { connectDB } from "@/app/src/lib/db";
 import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
 import { paginationSchema } from "@/app/src/validations/order.validation";
+import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
 
 export async function GET(req: Request) {
     try {
         await connectDB();
         const authHeader = req.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { status: 401, message: "Unauthorized" },
-                { status: 401 }
-            );
+            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
         }
 
         const token = authHeader.split(" ")[1];
         const decoded: any = verifyToken(token);
 
         if (!decoded || decoded.role !== "admin") {
-            return NextResponse.json(
-                { status: 403, message: "Admin only access" },
-                { status: 403 }
-            );
+            return errorResponse("Admin only access", 403, "FORBIDDEN");
         }
 
         // 📥 Query params
@@ -37,14 +32,7 @@ export async function GET(req: Request) {
         const parsedQuery = paginationSchema.safeParse(rawQuery);
 
         if (!parsedQuery.success) {
-            return NextResponse.json(
-                {
-                    status: 400,
-                    message: "Invalid pagination params",
-                    errors: parsedQuery.error.flatten(),
-                },
-                { status: 400 }
-            );
+            return errorResponse("Invalid pagination params", 400, "VALIDATION_ERROR");
         }
 
         const { page, limit } = parsedQuery.data;
@@ -53,13 +41,7 @@ export async function GET(req: Request) {
         const allowedStatus = ["PLACED", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED"];
 
         if (status && !allowedStatus.includes(status)) {
-            return NextResponse.json(
-                {
-                    status: 400,
-                    message: "Invalid status filter",
-                },
-                { status: 400 }
-            );
+            return errorResponse("Invalid status filter", 400, "INVALID_STATUS");
         }
 
         const filter: any = {};
@@ -75,28 +57,20 @@ export async function GET(req: Request) {
 
         const total = await Order.countDocuments(filter);
 
-        return NextResponse.json(
-            {
-                status: 200,
-                message: "Admin orders fetched",
-                orders,
-                pagination: {
-                    total,
-                    page,
-                    limit,
-                    pages: Math.ceil(total / limit),
-                },
+        return successResponse("Admin orders fetched", {
+            orders,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit),
             },
-            { status: 200 }
-        );
+        });
     } catch (error: any) {
-        return NextResponse.json(
-            {
-                status: 500,
-                message: "Internal server error",
-                error: error.message,
-            },
-            { status: 500 }
+        return errorResponse(
+            "Internal server error",
+            500,
+            error.message || "SERVER_ERROR"
         );
     }
 }
@@ -108,27 +82,22 @@ export async function PATCH(req: Request) {
         // 🔐 Auth
         const authHeader = req.headers.get("authorization");
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { status: 401, message: "Unauthorized" },
-                { status: 401 }
-            );
+            return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
         }
 
         const token = authHeader.split(" ")[1];
         const decoded = verifyToken(token);
 
         if (!decoded) {
-            return NextResponse.json(
-                { status: 401, message: "Invalid token" },
-                { status: 401 }
-            );
+            return errorResponse("Invalid token", 401, "INVALID_TOKEN");
         }
 
         // 🔒 RBAC
         if (decoded.role !== "admin") {
-            return NextResponse.json(
-                { status: 403, message: "Only admin can update order status" },
-                { status: 403 }
+            return errorResponse(
+                "Only admin can update order status",
+                403,
+                "FORBIDDEN"
             );
         }
 
@@ -136,9 +105,10 @@ export async function PATCH(req: Request) {
         const { orderId, status } = await req.json();
 
         if (!orderId || !status) {
-            return NextResponse.json(
-                { status: 400, message: "orderId and status required" },
-                { status: 400 }
+            return errorResponse(
+                "orderId and status required",
+                400,
+                "VALIDATION_ERROR"
             );
         }
 
@@ -146,10 +116,7 @@ export async function PATCH(req: Request) {
         const order = await Order.findById(orderId);
 
         if (!order) {
-            return NextResponse.json(
-                { status: 404, message: "Order not found" },
-                { status: 404 }
-            );
+            return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
         }
 
         if (!order.statusHistory) {
@@ -169,9 +136,10 @@ export async function PATCH(req: Request) {
 
         // ❌ Invalid transition
         if (!statusFlow[currentStatus].includes(status)) {
-            return NextResponse.json(
-                { status: 400, message: `Cannot change status from ${currentStatus} to ${status}`, },
-                { status: 400 }
+            return errorResponse(
+                `Cannot change status from ${currentStatus} to ${status}`,
+                400,
+                "INVALID_ORDER_TRANSITION"
             );
         }
 
@@ -190,22 +158,15 @@ export async function PATCH(req: Request) {
 
         await order.save();
 
-        return NextResponse.json(
-            {
-                status: 200,
-                message: "Order status updated successfully",
-                order,
-            },
-            { status: 200 }
+        return successResponse(
+            "Order status updated successfully",
+            { order }
         );
     } catch (error: any) {
-        return NextResponse.json(
-            {
-                status: 500,
-                message: "Internal server error",
-                error: error.message || error.toString(),
-            },
-            { status: 500 }
+        return errorResponse(
+            "Internal server error",
+            500,
+            error.message || "SERVER_ERROR"
         );
     }
 }
