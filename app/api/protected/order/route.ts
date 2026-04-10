@@ -5,6 +5,7 @@ import { Product } from "@/app/src/models/Product";
 import { Order } from "@/app/src/models/Order";
 import { NextResponse } from "next/server";
 import { createOrderSchema } from "@/app/src/validations/order.validation";
+import mongoose from "mongoose";
 
 export async function POST(req: Request) {
     try {
@@ -73,28 +74,51 @@ export async function POST(req: Request) {
 
         const { deliveryAddress } = parsed.data;
 
-        const order = await Order.create({
-            user: userId,
-            items: orderItems,
-            totalAmount,
-            deliveryAddress,
-            orderStatus: "PLACED",
-            statusHistory: [
-              {
-                status: "PLACED",
-                updatedAt: new Date(),
-              },
-            ],
-          });
-        for (const item of cart.items) {
-            await Product.findByIdAndUpdate(item.product._id, { $inc: { stock: -item.quantity },});
-        }
-        await Cart.findOneAndUpdate(
-            { user: userId, },
-            { $set: { items: [], }, }
-        );
+        const session = await mongoose.startSession();
+
+        let order: any[] = [];
+
+        await session.withTransaction(async () => {
+            // 🧾 Create order
+            order = await Order.create(
+                [
+                    {
+                        user: userId,
+                        items: orderItems,
+                        totalAmount,
+                        deliveryAddress,
+                        orderStatus: "PLACED",
+                        statusHistory: [
+                            {
+                                status: "PLACED",
+                                updatedAt: new Date(),
+                            },
+                        ],
+                    },
+                ],
+                { session }
+            );
+
+            // 📦 Reduce stock
+            for (const item of cart.items) {
+                await Product.findByIdAndUpdate(
+                    item.product._id,
+                    { $inc: { stock: -item.quantity } },
+                    { session }
+                );
+            }
+
+            // 🛒 Clear cart
+            await Cart.findOneAndUpdate(
+                { user: userId },
+                { $set: { items: [] } },
+                { session }
+            );
+        });
+
+        session.endSession();
         return NextResponse.json(
-            { status: 201, message: "Order placed successfully", order, },
+            { status: 201, message: "Order placed successfully", order: order[0], },
             { status: 201, },
         );
     } catch (error) {
