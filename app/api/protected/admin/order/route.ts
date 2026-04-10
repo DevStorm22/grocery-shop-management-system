@@ -3,7 +3,7 @@ import { connectDB } from "@/app/src/lib/db";
 import { Order } from "@/app/src/models/Order";
 import { paginationSchema } from "@/app/src/validations/order.validation";
 import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
-import OrderService from "@app/src/services/order.service";
+import { OrderService } from "@/app/src/services/order.service";
 
 export async function GET(req: Request) {
     try {
@@ -113,7 +113,7 @@ export async function PATCH(req: Request) {
         }
 
         // 🔍 Find Order
-        const order = await OrderService.getOrderById(id, userId);
+        const order = await OrderService.getOrderById(orderId, decoded.userId);
 
         if (!order) {
             return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
