@@ -5,6 +5,7 @@ import { Product } from "@/app/src/models/Product";
 import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { orderIdSchema } from "@/app/src/validations/order.validation";
+import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
 
 export async function PATCH(
   req: Request,
@@ -23,14 +24,7 @@ export async function PATCH(
     const parsed = orderIdSchema.safeParse({ id });
 
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          status: 400,
-          message: "Invalid order ID",
-          errors: parsed.error.flatten(),
-        },
-        { status: 400 }
-      );
+      return errorResponse("Invalid order ID", 400, "INVALID_ORDER_ID");
     }
 
     const validId = parsed.data.id;
@@ -38,20 +32,14 @@ export async function PATCH(
     // 🔐 AUTH
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { status: 401, message: "Unauthorized" },
-        { status: 401 }
-      );
+      return errorResponse("Unauthorized", 401, "UNAUTHORIZED");
     }
 
     const token = authHeader.split(" ")[1];
     const decoded: any = verifyToken(token);
 
     if (!decoded?.userId) {
-      return NextResponse.json(
-        { status: 401, message: "Invalid token" },
-        { status: 401 }
-      );
+      return errorResponse("Invalid token", 401, "INVALID_TOKEN");
     }
 
     await session.withTransaction(async () => {
@@ -95,56 +83,37 @@ export async function PATCH(
       updatedOrder = await order.save({ session });
     });
 
-    return NextResponse.json(
-      {
-        status: 200,
-        message: "Order cancelled successfully",
-        order: updatedOrder,
-      },
-      { status: 200 }
+    return successResponse(
+      "Order cancelled successfully",
+      { order: updatedOrder }
     );
 
   } catch (error: any) {
     session.endSession();
 
     if (error.message === "ORDER_NOT_FOUND") {
-      return NextResponse.json(
-        { status: 404, message: "Order not found" },
-        { status: 404 }
-      );
+      return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
     }
 
     if (error.message === "FORBIDDEN") {
-      return NextResponse.json(
-        { status: 403, message: "Forbidden" },
-        { status: 403 }
-      );
+      return errorResponse("Forbidden", 403, "FORBIDDEN");
     }
 
     if (error.message === "ALREADY_CANCELLED") {
-      return NextResponse.json(
-        { status: 400, message: "Order already cancelled" },
-        { status: 400 }
-      );
+      return errorResponse("Order already cancelled", 400, "ALREADY_CANCELLED");
     }
 
     if (error.message.startsWith("INVALID_STATE")) {
-      return NextResponse.json(
-        {
-          status: 400,
-          message: `Cannot cancel order in ${error.message.split("_")[2]} state`,
-        },
-        { status: 400 }
+      return errorResponse(
+        `Cannot cancel order in ${error.message.split("_")[2]} state`,
+        400,
+        "INVALID_ORDER_STATE"
       );
     }
 
-    return NextResponse.json(
-      {
-        status: 500,
-        message: "Internal server error",
-        error: error.message,
-      },
-      { status: 500 }
+    return successResponse(
+      "Order cancelled successfully",
+      { order: updatedOrder }
     );
   } finally {
     session.endSession();
