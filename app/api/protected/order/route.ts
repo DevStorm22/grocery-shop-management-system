@@ -30,11 +30,10 @@ export const POST = asyncHandler(async (req: Request) => {
     const parsed = createOrderSchema.safeParse(body);
 
     if (!parsed.success) {
-        return errorResponse(
-            parsed.error.issues[0].message,
-            400,
-            "VALIDATION_ERROR"
-        );
+        const message =
+            parsed.error.issues?.[0]?.message || "Validation error";
+
+        return errorResponse(message, 400, "VALIDATION_ERROR");
     }
 
     const { deliveryAddress } = parsed.data;
