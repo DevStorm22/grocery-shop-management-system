@@ -12,6 +12,8 @@ export async function PATCH(
 ) {
   const session = await mongoose.startSession();
 
+  let updatedOrder: any;
+
   try {
     await connectDB();
 
@@ -90,15 +92,14 @@ export async function PATCH(
         updatedAt: new Date(),
       });
 
-      await order.save({ session });
+      updatedOrder = await order.save({ session });
     });
-
-    session.endSession();
 
     return NextResponse.json(
       {
         status: 200,
         message: "Order cancelled successfully",
+        order: updatedOrder,
       },
       { status: 200 }
     );
@@ -145,5 +146,7 @@ export async function PATCH(
       },
       { status: 500 }
     );
+  } finally {
+    session.endSession();
   }
 }
