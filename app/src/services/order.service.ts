@@ -3,7 +3,14 @@ import { Order } from "@/app/src/models/Order";
 import { Product } from "@/app/src/models/Product";
 import { AppError } from "@/app/src/lib/appError";
 import { Cart } from "@/app/src/models/Cart";
+import { api } from "@/app/src/lib/api";
 
+export const createOrder = async (data: {
+    deliveryAddress: string;
+}) => {
+    const res = await api.post("/protected/order", data);
+    return res.data;
+};
 export class OrderService {
     static async createOrder(userId: string, deliveryAddress: string) {
         const session = await mongoose.startSession();
