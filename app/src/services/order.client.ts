@@ -9,7 +9,7 @@ export const createOrder = async (data: {
 
 export const getMyOrders = async () => {
     const res = await api.get("/protected/order/my-orders");
-    return res.data;
+    return res.data.orders;
 };
 
 export const cancelOrder = async (id: string) => {
