@@ -16,3 +16,8 @@ export const cancelOrder = async (id: string) => {
     const res = await api.patch(`/protected/order/cancel/${id}`);
     return res.data;
 };
+
+export const getOrderById = async (id: string) => {
+    const res = await api.get(`/protected/order/${id}`);
+    return res.data.data.order;
+};

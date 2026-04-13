@@ -5,6 +5,7 @@ import {
     getMyOrders,
     cancelOrder,
 } from "@/app/src/services/order.client";
+import Link from "next/link";
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
@@ -85,6 +86,12 @@ export default function OrdersPage() {
                                     </p>
 
                                     <p>Total: ₹{order.totalAmount}</p>
+                                    <Link
+                                        href={`/orders/${order._id}`}
+                                        className="underline text-sm"
+                                    >
+                                        View Details
+                                    </Link>
                                 </div>
 
                                 <div className="text-right">
