@@ -7,6 +7,13 @@ import {
     cancelOrder,
 } from "@/app/src/services/order.client";
 
+const statuses = [
+    "PLACED",
+    "CONFIRMED",
+    "SHIPPED",
+    "DELIVERED",
+];
+
 export default function OrderDetailsPage() {
     const params = useParams();
     const id = params.id as string;
@@ -50,6 +57,39 @@ export default function OrderDetailsPage() {
             <p>ID: {order._id}</p>
             <p>Status: {order.orderStatus}</p>
             <p>Total: ₹{order.totalAmount}</p>
+            <div className="mt-8">
+                <h2 className="text-xl font-bold mb-4">
+                    Order Progress
+                </h2>
+
+                <div className="space-y-3">
+                    {statuses.map((status, index) => {
+                        const currentIndex = statuses.indexOf(
+                            order.orderStatus
+                        );
+
+                        const completed = index <= currentIndex;
+
+                        return (
+                            <div
+                                key={status}
+                                className="flex items-center gap-3"
+                            >
+                                <div
+                                    className={`w-6 h-6 rounded-full border flex items-center justify-center ${completed
+                                            ? "bg-black text-white"
+                                            : ""
+                                        }`}
+                                >
+                                    {completed ? "✓" : ""}
+                                </div>
+
+                                <span>{status}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }
