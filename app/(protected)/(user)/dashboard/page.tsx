@@ -175,8 +175,10 @@ export default function DashboardPage() {
                                             {order._id.slice(-6)}
                                         </td>
 
-                                        <td className="p-3">
-                                            {order.orderStatus}
+                                        <td className="p-3 align-middle">
+                                            <span className={getBadge(order.orderStatus)}>
+                                                {order.orderStatus}
+                                            </span>
                                         </td>
 
                                         <td className="p-3">
