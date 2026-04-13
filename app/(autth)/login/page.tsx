@@ -22,6 +22,8 @@ export default function LoginPage() {
         try {
             setLoading(true);
 
+            console.log("FORM DATA:", form);
+
             const res = await loginUser(form);
 
             console.log("LOGIN RESPONSE:", res);

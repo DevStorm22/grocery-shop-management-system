@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getCart } from "@/app/src/services/cart.service";
-import { createOrder } from "@/app/src/services/order.service";
+import { createOrder } from "@/app/src/services/order.client";
 
 export default function CartPage() {
     const [cart, setCart] = useState<any>(null);

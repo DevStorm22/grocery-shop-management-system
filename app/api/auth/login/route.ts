@@ -18,6 +18,10 @@ export async function POST(req: Request) {
                 { status: 400 }
             );
         }
+        console.log("EMAIL:", email);
+        console.log("PASSWORD RAW:", password);
+        console.log("PASSWORD LENGTH:", password.length);
+        console.log("HASH:", user.password);
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return NextResponse.json(

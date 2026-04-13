@@ -1,5 +1,6 @@
 "use client";
 
+import Navbar from "@/app/components/Navbar";
 import { useAuthStore } from "@/app/src/store/auth.store";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -9,20 +10,22 @@ export default function ProtectedLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { user, isHydrated } = useAuthStore();
+    const { user, token, isHydrated } = useAuthStore();
     const router = useRouter();
 
     useEffect(() => {
-        if (isHydrated && !user) {
-            router.push("/login");
+        if (isHydrated && (!user || !token)) {
+            router.replace("/login");
         }
-    }, [isHydrated, user]);
+    }, [isHydrated, user, token]);
 
-    // ⛔ wait for hydration
-    if (!isHydrated) return <p>Loading...</p>;
+    if (!isHydrated) return null;
+    if (!user || !token) return null;
 
-    // ⛔ block if not logged in
-    if (!user) return null;
-
-    return <>{children}</>;
+    return (
+        <>
+            <Navbar />
+            <main className="p-6">{children}</main>
+        </>
+    );
 }
