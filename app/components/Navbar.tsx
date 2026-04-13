@@ -21,6 +21,7 @@ export default function Navbar() {
                 <Link href="/dashboard">Dashboard</Link>
                 <Link href="/products">Products</Link>
                 <Link href="/cart">Cart</Link>
+                <Link href="/orders">Orders</Link>
 
                 <span>{user?.email}</span>
 
