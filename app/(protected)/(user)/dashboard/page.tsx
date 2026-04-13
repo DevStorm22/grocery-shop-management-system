@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getMyOrders } from "@/app/src/services/order.client";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [stats, setStats] = useState({
         totalOrders: 0,
         delivered: 0,
@@ -13,6 +15,30 @@ export default function DashboardPage() {
     });
 
     const [orders, setOrders] = useState<any[]>([]);
+
+    const [loading, setLoading] = useState(true);
+
+    const getBadge = (status: string) => {
+        const base =
+            "px-3 py-1 rounded-full text-xs font-semibold";
+
+        switch (status) {
+            case "DELIVERED":
+                return `${base} bg-green-100 text-green-700`;
+
+            case "CANCELLED":
+                return `${base} bg-red-100 text-red-700`;
+
+            case "SHIPPED":
+                return `${base} bg-blue-100 text-blue-700`;
+
+            case "CONFIRMED":
+                return `${base} bg-yellow-100 text-yellow-700`;
+
+            default:
+                return `${base} bg-gray-100 text-gray-700`;
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -49,11 +75,21 @@ export default function DashboardPage() {
                 });
             } catch (error) {
                 console.error(error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchData();
     }, []);
+
+    if (loading) {
+        return (
+            <div className="p-6 flex justify-center items-center h-[60vh]">
+                <p className="text-gray-500">Loading dashboard...</p>
+            </div>
+        );
+    }
 
     const Card = ({
         title,
@@ -119,32 +155,40 @@ export default function DashboardPage() {
                         </thead>
 
                         <tbody>
-                            {orders.slice(0, 5).map((order: any) => (
-                                <tr
-                                    key={order._id}
-                                    className="border-b"
-                                >
-                                    <td className="p-3">
-                                        {order._id.slice(-6)}
-                                    </td>
-
-                                    <td className="p-3">
-                                        <span className="px-2 py-1 border rounded text-sm">
-                                            {order.orderStatus}
-                                        </span>
-                                    </td>
-
-                                    <td className="p-3">
-                                        ₹{order.totalAmount}
-                                    </td>
-
-                                    <td className="p-3">
-                                        {new Date(
-                                            order.createdAt
-                                        ).toLocaleDateString()}
+                            {orders.length === 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan={4}
+                                        className="p-6 text-center text-gray-500"
+                                    >
+                                        No orders yet.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                orders.slice(0, 5).map((order: any) => (
+                                    <tr
+                                        key={order._id}
+                                        onClick={() => router.push(`/orders/${order._id}`)}
+                                        className="border-b hover:bg-gray-50 cursor-pointer transition"
+                                    >
+                                        <td className="p-3">
+                                            {order._id.slice(-6)}
+                                        </td>
+
+                                        <td className="p-3">
+                                            {order.orderStatus}
+                                        </td>
+
+                                        <td className="p-3">
+                                            ₹{order.totalAmount}
+                                        </td>
+
+                                        <td className="p-3">
+                                            {new Date(order.createdAt).toLocaleDateString()}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
