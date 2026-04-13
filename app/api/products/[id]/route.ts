@@ -5,19 +5,19 @@ import { NextResponse } from "next/server";
 
 export async function GET(
     req: Request,
-    context : { params: Promise<{ id: string }> }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         await connectDB();
         const { id } = await context.params;
-        if(!mongoose.Types.ObjectId.isValid(id)) {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
             return NextResponse.json(
                 { status: 400, message: "Invalid product id", },
                 { status: 400, },
             );
         }
         const product = await Product.findById(id);
-        if(!product) {
+        if (!product) {
             return NextResponse.json(
                 { status: 404, message: "Product not found", },
                 { status: 404, },
@@ -31,6 +31,37 @@ export async function GET(
         return NextResponse.json(
             { status: 500, message: "Internal server error", error },
             { status: 500, },
+        );
+    }
+}
+export async function PATCH(
+    req: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        await connectDB();
+
+        const body = await req.json();
+
+        const updated =
+            await Product.findByIdAndUpdate(
+                params.id,
+                body,
+                { new: true }
+            );
+
+        return NextResponse.json({
+            status: 200,
+            message: "Product updated",
+            product: updated,
+        });
+    } catch (error) {
+        return NextResponse.json(
+            {
+                status: 500,
+                message: "Update failed",
+            },
+            { status: 500 }
         );
     }
 }

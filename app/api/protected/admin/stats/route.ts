@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/src/lib/db";
 import { verifyToken } from "@/app/src/lib/auth";
-
 import { User } from "@/app/src/models/User";
 import { Product } from "@/app/src/models/Product";
 import { Order } from "@/app/src/models/Order";

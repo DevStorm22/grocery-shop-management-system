@@ -13,13 +13,20 @@ export default function Navbar() {
         router.push("/login");
     };
 
+    const getProductsRoute = (role?: string) => {
+        if (role === "admin") return "/admin/products";
+        return "/products";
+    };
+
     return (
         <nav className="flex justify-between items-center px-6 py-4 border-b">
             <div className="font-bold text-xl"><Link href="/">Grocery Shop</Link></div>
 
             <div className="flex gap-4 items-center">
                 <Link href="/dashboard">Dashboard</Link>
-                <Link href="/products">Products</Link>
+                <Link href={getProductsRoute(user?.role)}>
+                    Products
+                </Link>
                 <Link href="/cart">Cart</Link>
                 <Link href="/orders">Orders</Link>
 

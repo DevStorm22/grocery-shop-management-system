@@ -6,9 +6,7 @@ import api from "@/app/src/lib/axios";
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] =
-        useState(false);
-
+    const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({
         name: "",
         category: "",
@@ -17,6 +15,34 @@ export default function AdminProductsPage() {
         description: "",
         unit: "",
     });
+    const [editModal, setEditModal] = useState(false);
+
+    const [selectedId, setSelectedId] = useState("");
+
+    const [editForm, setEditForm] =
+        useState({
+            name: "",
+            category: "",
+            price: "",
+            stock: "",
+            description: "",
+            unit: "",
+        });
+
+    const fetchProducts = async () => {
+        try {
+            const res = await api.get("/products");
+            setProducts(res.data.products || []);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    useEffect(() => {
+
+        fetchProducts();
+    }, []);
 
     const handleAddProduct = async () => {
         try {
@@ -34,21 +60,25 @@ export default function AdminProductsPage() {
             console.error(error);
         }
     };
-
-    useEffect(() => {
-        const fetchProducts = async () => {
+    const handleUpdateProduct =
+        async () => {
             try {
-                const res = await api.get("/products");
-                setProducts(res.data.products || []);
+                await api.patch(
+                    `/products/${selectedId}`,
+                    {
+                        ...editForm,
+                        price: Number(editForm.price),
+                        stock: Number(editForm.stock),
+                    }
+                );
+
+                await fetchProducts();
+                setEditModal(false);
+                window.location.reload()
             } catch (error) {
                 console.error(error);
-            } finally {
-                setLoading(false);
             }
         };
-
-        fetchProducts();
-    }, []);
 
     if (loading) {
         return (
@@ -108,7 +138,24 @@ export default function AdminProductsPage() {
                                 </td>
 
                                 <td className="p-3 space-x-2">
-                                    <button className="px-3 py-1 border rounded">
+                                    <button
+                                        onClick={() => {
+                                            setSelectedId(product._id);
+
+                                            setEditForm({
+                                                name: product.name || "",
+                                                category: product.category || "",
+                                                price: String(product.price || ""),
+                                                stock: String(product.stock || ""),
+                                                description:
+                                                    product.description || "",
+                                                unit: product.unit || "",
+                                            });
+
+                                            setEditModal(true);
+                                        }}
+                                        className="px-3 py-1 border rounded"
+                                    >
                                         Edit
                                     </button>
 
@@ -209,6 +256,102 @@ export default function AdminProductsPage() {
                                 className="px-4 py-2 bg-black text-white rounded"
                             >
                                 Save Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {editModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-lg rounded-xl p-6">
+                        <h2 className="text-2xl font-bold mb-5">
+                            Edit Product
+                        </h2>
+
+                        <div className="space-y-3">
+                            <input
+                                value={editForm.name}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        name: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <input
+                                value={editForm.category}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        category: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <input
+                                value={editForm.price}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        price: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <input
+                                value={editForm.stock}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        stock: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <input
+                                value={editForm.unit}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        unit: e.target.value,
+                                    })
+                                }
+                            />
+
+                            <textarea
+                                value={editForm.description}
+                                className="w-full border p-2 rounded"
+                                onChange={(e) =>
+                                    setEditForm({
+                                        ...editForm,
+                                        description:
+                                            e.target.value,
+                                    })
+                                }
+                            />
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6">
+                            <button
+                                onClick={() =>
+                                    setEditModal(false)
+                                }
+                                className="px-4 py-2 border rounded"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                onClick={handleUpdateProduct}
+                                className="px-4 py-2 bg-black text-white rounded"
+                            >
+                                Save Changes
                             </button>
                         </div>
                     </div>
