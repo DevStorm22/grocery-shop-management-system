@@ -12,12 +12,13 @@ export default function DashboardPage() {
         spend: 0,
     });
 
+    const [orders, setOrders] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const orders = await getMyOrders();
-
+                setOrders(orders);
 
                 const totalOrders = orders.length;
 
@@ -100,6 +101,53 @@ export default function DashboardPage() {
                     title="Total Spend"
                     value={`₹${stats.spend}`}
                 />
+            </div>
+            <div className="mt-10">
+                <h2 className="text-2xl font-bold mb-4">
+                    Recent Orders
+                </h2>
+
+                <div className="border rounded-xl overflow-hidden">
+                    <table className="w-full text-left">
+                        <thead className="border-b">
+                            <tr>
+                                <th className="p-3">Order ID</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3">Amount</th>
+                                <th className="p-3">Date</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {orders.slice(0, 5).map((order: any) => (
+                                <tr
+                                    key={order._id}
+                                    className="border-b"
+                                >
+                                    <td className="p-3">
+                                        {order._id.slice(-6)}
+                                    </td>
+
+                                    <td className="p-3">
+                                        <span className="px-2 py-1 border rounded text-sm">
+                                            {order.orderStatus}
+                                        </span>
+                                    </td>
+
+                                    <td className="p-3">
+                                        ₹{order.totalAmount}
+                                    </td>
+
+                                    <td className="p-3">
+                                        {new Date(
+                                            order.createdAt
+                                        ).toLocaleDateString()}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
