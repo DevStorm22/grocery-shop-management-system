@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/app/src/lib/axios";
+import toast from "react-hot-toast";
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -37,14 +38,15 @@ export default function AdminProductsPage() {
         try {
             const res = await api.get("/products");
             setProducts(res.data.products || []);
+            toast.success("Product fetched successfully");
         } catch (error) {
-            console.error(error);
+            toast.error("Something went wrong");
         } finally {
             setLoading(false);
         }
     };
-    useEffect(() => {
 
+    useEffect(() => {
         fetchProducts();
     }, []);
 
@@ -68,8 +70,9 @@ export default function AdminProductsPage() {
                 description: "",
                 unit: "",
             });
+            toast.success("Product added successfully");
         } catch (error) {
-            console.error(error);
+            toast.error("Something went wrong");
         }
     };
 
@@ -86,8 +89,9 @@ export default function AdminProductsPage() {
 
             await fetchProducts();
             setEditModal(false);
+            toast.success("Product updated successfully");
         } catch (error) {
-            console.error(error);
+            toast.error("Something went wrong");
         }
     };
 
@@ -103,8 +107,9 @@ export default function AdminProductsPage() {
 
             setDeleteModal(false);
             setDeleteId("");
+            toast.success("Product deleted successfully");
         } catch (error) {
-            console.error(error);
+            toast.error("Something went wrong");
         } finally {
             setDeleting(false);
         }
