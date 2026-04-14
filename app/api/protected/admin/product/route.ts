@@ -1,52 +1,59 @@
-import { verifyToken } from "@/app/src/lib/auth";
 import { connectDB } from "@/app/src/lib/db";
 import { Product } from "@/app/src/models/Product";
-import mongoose from "mongoose";
-import { NextRequest, NextResponse } from "next/server"
-import { successResponse, errorResponse } from "@/app/src/lib/apiResponse";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
     try {
-        const authHeader = req.headers.get("authorization");
-        if (!authHeader || !authHeader.startsWith("Bearer")) {
-            return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
-        }
-        const token = authHeader.split(" ")[1];
-        const decoded = verifyToken(token);
-        if (!decoded) {
-            return errorResponse("Order not found", 404, "ORDER_NOT_FOUND");
-        }
-        if (decoded.role !== "ADMIN") {
-            return errorResponse(
-                "Only admin can update order status",
-                403,
-                "FORBIDDEN"
-            );
-        }
+        await connectDB();
 
         const body = await req.json();
-        const { name, price, category, stock, description, image, unit } = body;
+
+        const {
+            name,
+            price,
+            category,
+            stock,
+            description,
+            unit,
+            image,
+        } = body;
+
         if (!name || !price || !category) {
-            return errorResponse(
-                "orderId and status required",
-                400,
-                "VALIDATION_ERROR"
+            return NextResponse.json(
+                {
+                    status: 400,
+                    message: "Name, price and category required",
+                },
+                { status: 400 }
             );
         }
-        await connectDB();
-        const product = await Product.create(
-            { name, price, category, stock, description, image, unit, },
+
+        const product = await Product.create({
+            name,
+            price,
+            category,
+            stock,
+            description,
+            unit,
+            image,
+            isAvailable: true,
+        });
+
+        return NextResponse.json(
+            {
+                status: 201,
+                message: "Product added successfully",
+                product,
+            },
+            { status: 201 }
         );
-        return successResponse(
-            "Product created successfully!!!",
-            { productId: product._id },
-            201,
-        );
-    } catch (error: any) {
-        return errorResponse(
-            "Internal server error",
-            500,
-            error.message || "SERVER_ERROR"
+    } catch (error) {
+        return NextResponse.json(
+            {
+                status: 500,
+                message: "Failed to add product",
+            },
+            { status: 500 }
         );
     }
 }

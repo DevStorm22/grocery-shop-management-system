@@ -7,7 +7,18 @@ import toast from "react-hot-toast";
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+
     const [showModal, setShowModal] = useState(false);
+    const [editModal, setEditModal] = useState(false);
+    const [deleteModal, setDeleteModal] = useState(false);
+
+    const [adding, setAdding] = useState(false);
+    const [updating, setUpdating] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const [selectedId, setSelectedId] = useState("");
+    const [deleteId, setDeleteId] = useState("");
+
     const [form, setForm] = useState({
         name: "",
         category: "",
@@ -16,31 +27,25 @@ export default function AdminProductsPage() {
         description: "",
         unit: "",
     });
-    const [editModal, setEditModal] = useState(false);
 
-    const [selectedId, setSelectedId] = useState("");
-
-    const [editForm, setEditForm] =
-        useState({
-            name: "",
-            category: "",
-            price: "",
-            stock: "",
-            description: "",
-            unit: "",
-        });
-
-    const [deleteModal, setDeleteModal] = useState(false);
-    const [deleteId, setDeleteId] = useState("");
-    const [deleting, setDeleting] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: "",
+        category: "",
+        price: "",
+        stock: "",
+        description: "",
+        unit: "",
+    });
 
     const fetchProducts = async () => {
         try {
+            setLoading(true);
+
             const res = await api.get("/products");
+
             setProducts(res.data.products || []);
-            toast.success("Product fetched successfully");
         } catch (error) {
-            toast.error("Something went wrong");
+            toast.error("Failed to fetch products");
         } finally {
             setLoading(false);
         }
@@ -50,9 +55,22 @@ export default function AdminProductsPage() {
         fetchProducts();
     }, []);
 
+    const resetForm = () => {
+        setForm({
+            name: "",
+            category: "",
+            price: "",
+            stock: "",
+            description: "",
+            unit: "",
+        });
+    };
+
     const handleAddProduct = async () => {
         try {
-            await api.post("/products", {
+            setAdding(true);
+
+            await api.post("/protected/admin/product", {
                 ...form,
                 price: Number(form.price),
                 stock: Number(form.stock),
@@ -60,24 +78,23 @@ export default function AdminProductsPage() {
             });
 
             await fetchProducts();
-            setShowModal(false);
 
-            setForm({
-                name: "",
-                category: "",
-                price: "",
-                stock: "",
-                description: "",
-                unit: "",
-            });
+            setShowModal(false);
+            resetForm();
+
             toast.success("Product added successfully");
         } catch (error) {
-            toast.error("Something went wrong");
+            console.log(error);
+            toast.error("Failed to add product");
+        } finally {
+            setAdding(false);
         }
     };
 
     const handleUpdateProduct = async () => {
         try {
+            setUpdating(true);
+
             await api.put(
                 `/protected/admin/product/${selectedId}`,
                 {
@@ -88,10 +105,14 @@ export default function AdminProductsPage() {
             );
 
             await fetchProducts();
+
             setEditModal(false);
+
             toast.success("Product updated successfully");
         } catch (error) {
-            toast.error("Something went wrong");
+            toast.error("Failed to update product");
+        } finally {
+            setUpdating(false);
         }
     };
 
@@ -107,11 +128,31 @@ export default function AdminProductsPage() {
 
             setDeleteModal(false);
             setDeleteId("");
+
             toast.success("Product deleted successfully");
         } catch (error) {
-            toast.error("Something went wrong");
+            toast.error("Failed to delete product");
         } finally {
             setDeleting(false);
+        }
+    };
+
+    const handleStockUpdate = async (
+        id: string,
+        type: "increase" | "decrease",
+        value: number
+    ) => {
+        try {
+            await api.patch(
+                `/protected/admin/product/${id}/stock`,
+                { type, value }
+            );
+
+            await fetchProducts();
+
+            toast.success("Stock updated");
+        } catch (error) {
+            toast.error("Failed to update stock");
         }
     };
 
@@ -146,6 +187,8 @@ export default function AdminProductsPage() {
                             <th className="p-3">Category</th>
                             <th className="p-3">Price</th>
                             <th className="p-3">Stock</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3">Inventory</th>
                             <th className="p-3">Actions</th>
                         </tr>
                     </thead>
@@ -172,19 +215,74 @@ export default function AdminProductsPage() {
                                     {product.stock}
                                 </td>
 
+                                <td className="p-3">
+                                    {product.stock === 0 ? (
+                                        <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-700">
+                                            Out of Stock
+                                        </span>
+                                    ) : product.stock <= 5 ? (
+                                        <span className="px-2 py-1 text-xs rounded bg-yellow-100 text-yellow-700">
+                                            Low Stock
+                                        </span>
+                                    ) : (
+                                        <span className="px-2 py-1 text-xs rounded bg-green-100 text-green-700">
+                                            In Stock
+                                        </span>
+                                    )}
+                                </td>
+
+                                <td className="p-3 space-x-2">
+                                    <button
+                                        onClick={() =>
+                                            handleStockUpdate(
+                                                product._id,
+                                                "increase",
+                                                1
+                                            )
+                                        }
+                                        className="px-2 py-1 border rounded"
+                                    >
+                                        +1
+                                    </button>
+
+                                    <button
+                                        onClick={() =>
+                                            handleStockUpdate(
+                                                product._id,
+                                                "decrease",
+                                                1
+                                            )
+                                        }
+                                        className="px-2 py-1 border rounded"
+                                    >
+                                        -1
+                                    </button>
+                                </td>
+
                                 <td className="p-3 space-x-2">
                                     <button
                                         onClick={() => {
                                             setSelectedId(product._id);
 
                                             setEditForm({
-                                                name: product.name || "",
-                                                category: product.category || "",
-                                                price: String(product.price || ""),
-                                                stock: String(product.stock || ""),
+                                                name:
+                                                    product.name ||
+                                                    "",
+                                                category:
+                                                    product.category ||
+                                                    "",
+                                                price: String(
+                                                    product.price
+                                                ),
+                                                stock: String(
+                                                    product.stock
+                                                ),
                                                 description:
-                                                    product.description || "",
-                                                unit: product.unit || "",
+                                                    product.description ||
+                                                    "",
+                                                unit:
+                                                    product.unit ||
+                                                    "",
                                             });
 
                                             setEditModal(true);
@@ -196,8 +294,12 @@ export default function AdminProductsPage() {
 
                                     <button
                                         onClick={() => {
-                                            setDeleteId(product._id);
-                                            setDeleteModal(true);
+                                            setDeleteId(
+                                                product._id
+                                            );
+                                            setDeleteModal(
+                                                true
+                                            );
                                         }}
                                         className="px-3 py-1 border rounded text-red-600"
                                     >
@@ -209,6 +311,8 @@ export default function AdminProductsPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* ADD MODAL */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white w-full max-w-lg rounded-xl p-6">
@@ -218,6 +322,7 @@ export default function AdminProductsPage() {
 
                         <div className="space-y-3">
                             <input
+                                value={form.name}
                                 placeholder="Name"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
@@ -229,17 +334,20 @@ export default function AdminProductsPage() {
                             />
 
                             <input
+                                value={form.category}
                                 placeholder="Category"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
                                     setForm({
                                         ...form,
-                                        category: e.target.value,
+                                        category:
+                                            e.target.value,
                                     })
                                 }
                             />
 
                             <input
+                                value={form.price}
                                 placeholder="Price"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
@@ -251,6 +359,7 @@ export default function AdminProductsPage() {
                             />
 
                             <input
+                                value={form.stock}
                                 placeholder="Stock"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
@@ -262,7 +371,8 @@ export default function AdminProductsPage() {
                             />
 
                             <input
-                                placeholder="Unit (kg, litre)"
+                                value={form.unit}
+                                placeholder="Unit"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
                                     setForm({
@@ -273,12 +383,14 @@ export default function AdminProductsPage() {
                             />
 
                             <textarea
+                                value={form.description}
                                 placeholder="Description"
                                 className="w-full border p-2 rounded"
                                 onChange={(e) =>
                                     setForm({
                                         ...form,
-                                        description: e.target.value,
+                                        description:
+                                            e.target.value,
                                     })
                                 }
                             />
@@ -286,7 +398,9 @@ export default function AdminProductsPage() {
 
                         <div className="flex justify-end gap-3 mt-6">
                             <button
-                                onClick={() => setShowModal(false)}
+                                onClick={() =>
+                                    setShowModal(false)
+                                }
                                 className="px-4 py-2 border rounded"
                             >
                                 Cancel
@@ -294,14 +408,19 @@ export default function AdminProductsPage() {
 
                             <button
                                 onClick={handleAddProduct}
-                                className="px-4 py-2 bg-black text-white rounded"
+                                disabled={adding}
+                                className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
                             >
-                                Save Product
+                                {adding
+                                    ? "Saving..."
+                                    : "Save Product"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* EDIT MODAL */}
             {editModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white w-full max-w-lg rounded-xl p-6">
@@ -327,7 +446,8 @@ export default function AdminProductsPage() {
                                 onChange={(e) =>
                                     setEditForm({
                                         ...editForm,
-                                        category: e.target.value,
+                                        category:
+                                            e.target.value,
                                     })
                                 }
                             />
@@ -389,15 +509,22 @@ export default function AdminProductsPage() {
                             </button>
 
                             <button
-                                onClick={handleUpdateProduct}
-                                className="px-4 py-2 bg-black text-white rounded"
+                                onClick={
+                                    handleUpdateProduct
+                                }
+                                disabled={updating}
+                                className="px-4 py-2 bg-black text-white rounded disabled:opacity-50"
                             >
-                                Save Changes
+                                {updating
+                                    ? "Updating..."
+                                    : "Save Changes"}
                             </button>
                         </div>
                     </div>
                 </div>
             )}
+
+            {/* DELETE MODAL */}
             {deleteModal && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white w-full max-w-md rounded-xl p-6">
@@ -406,23 +533,30 @@ export default function AdminProductsPage() {
                         </h2>
 
                         <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete this product?
+                            Are you sure you want to
+                            delete this product?
                         </p>
 
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={() => setDeleteModal(false)}
+                                onClick={() =>
+                                    setDeleteModal(false)
+                                }
                                 className="px-4 py-2 border rounded"
                             >
                                 Cancel
                             </button>
 
                             <button
-                                onClick={handleDeleteProduct}
+                                onClick={
+                                    handleDeleteProduct
+                                }
                                 disabled={deleting}
-                                className="px-4 py-2 bg-red-600 text-white rounded"
+                                className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-50"
                             >
-                                {deleting ? "Deleting..." : "Delete"}
+                                {deleting
+                                    ? "Deleting..."
+                                    : "Delete"}
                             </button>
                         </div>
                     </div>
