@@ -29,6 +29,10 @@ export default function AdminProductsPage() {
             unit: "",
         });
 
+    const [deleteModal, setDeleteModal] = useState(false);
+    const [deleteId, setDeleteId] = useState("");
+    const [deleting, setDeleting] = useState(false);
+
     const fetchProducts = async () => {
         try {
             const res = await api.get("/products");
@@ -53,32 +57,58 @@ export default function AdminProductsPage() {
                 isAvailable: true,
             });
 
+            await fetchProducts();
             setShowModal(false);
 
-            window.location.reload();
+            setForm({
+                name: "",
+                category: "",
+                price: "",
+                stock: "",
+                description: "",
+                unit: "",
+            });
         } catch (error) {
             console.error(error);
         }
     };
-    const handleUpdateProduct =
-        async () => {
-            try {
-                await api.patch(
-                    `/products/${selectedId}`,
-                    {
-                        ...editForm,
-                        price: Number(editForm.price),
-                        stock: Number(editForm.stock),
-                    }
-                );
 
-                await fetchProducts();
-                setEditModal(false);
-                window.location.reload()
-            } catch (error) {
-                console.error(error);
-            }
-        };
+    const handleUpdateProduct = async () => {
+        try {
+            await api.put(
+                `/protected/admin/product/${selectedId}`,
+                {
+                    ...editForm,
+                    price: Number(editForm.price),
+                    stock: Number(editForm.stock),
+                }
+            );
+
+            await fetchProducts();
+            setEditModal(false);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleDeleteProduct = async () => {
+        try {
+            setDeleting(true);
+
+            await api.delete(
+                `/protected/admin/product/${deleteId}`
+            );
+
+            await fetchProducts();
+
+            setDeleteModal(false);
+            setDeleteId("");
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -159,7 +189,13 @@ export default function AdminProductsPage() {
                                         Edit
                                     </button>
 
-                                    <button className="px-3 py-1 border rounded text-red-600">
+                                    <button
+                                        onClick={() => {
+                                            setDeleteId(product._id);
+                                            setDeleteModal(true);
+                                        }}
+                                        className="px-3 py-1 border rounded text-red-600"
+                                    >
                                         Delete
                                     </button>
                                 </td>
@@ -352,6 +388,36 @@ export default function AdminProductsPage() {
                                 className="px-4 py-2 bg-black text-white rounded"
                             >
                                 Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {deleteModal && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white w-full max-w-md rounded-xl p-6">
+                        <h2 className="text-xl font-bold mb-3">
+                            Delete Product
+                        </h2>
+
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this product?
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setDeleteModal(false)}
+                                className="px-4 py-2 border rounded"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                onClick={handleDeleteProduct}
+                                disabled={deleting}
+                                className="px-4 py-2 bg-red-600 text-white rounded"
+                            >
+                                {deleting ? "Deleting..." : "Delete"}
                             </button>
                         </div>
                     </div>
