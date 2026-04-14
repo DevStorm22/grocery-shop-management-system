@@ -19,6 +19,12 @@ export default function AdminProductsPage() {
     const [selectedId, setSelectedId] = useState("");
     const [deleteId, setDeleteId] = useState("");
 
+    const [search, setSearch] = useState("");
+    const [category, setCategory] = useState("All");
+
+    const [page, setPage] = useState(1);
+    const [pages, setPages] = useState(1);
+
     const [form, setForm] = useState({
         name: "",
         category: "",
@@ -39,11 +45,11 @@ export default function AdminProductsPage() {
 
     const fetchProducts = async () => {
         try {
-            setLoading(true);
-
-            const res = await api.get("/products");
+            const res = await api.get(`/products?q=${search}&category=${category}&page=${page}`);
 
             setProducts(res.data.products || []);
+
+            setPages(res.data.pagination?.pages || 1);
         } catch (error) {
             toast.error("Failed to fetch products");
         } finally {
@@ -179,6 +185,32 @@ export default function AdminProductsPage() {
                 </button>
             </div>
 
+            <div className="flex gap-3 mb-5">
+                <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search products..."
+                    className="border p-2 rounded w-full"
+                />
+
+                <select
+                    value={category}
+                    onChange={(e) => {
+                        setPage(1);
+                        setCategory(
+                            e.target.value
+                        );
+                    }}
+                    className="border p-2 rounded"
+                >
+                    <option>All</option>
+                    <option>Fruits</option>
+                    <option>Vegetables</option>
+                    <option>Dairy</option>
+                    <option>Bakery</option>
+                </select>
+            </div>
+
             <div className="overflow-x-auto border rounded-xl">
                 <table className="w-full text-left">
                     <thead className="border-b bg-gray-50">
@@ -310,6 +342,31 @@ export default function AdminProductsPage() {
                         ))}
                     </tbody>
                 </table>
+                <div className="flex justify-end gap-3 mt-5">
+                    <button
+                        disabled={page === 1}
+                        onClick={() =>
+                            setPage(page - 1)
+                        }
+                        className="px-4 py-2 border rounded disabled:opacity-50"
+                    >
+                        Prev
+                    </button>
+
+                    <span className="px-3 py-2">
+                        {page} / {pages}
+                    </span>
+
+                    <button
+                        disabled={page === pages}
+                        onClick={() =>
+                            setPage(page + 1)
+                        }
+                        className="px-4 py-2 border rounded disabled:opacity-50"
+                    >
+                        Next
+                    </button>
+                </div>
             </div>
 
             {/* ADD MODAL */}
