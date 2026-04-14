@@ -86,10 +86,7 @@ export default function AdminPage() {
     );
 }
 
-function Card({
-    title,
-    value,
-}: {
+function Card({ title, value }: {
     title: string;
     value: string | number;
 }) {

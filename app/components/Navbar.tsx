@@ -18,6 +18,11 @@ export default function Navbar() {
         return "/products";
     };
 
+    const getOrdersRoute = (role?: string) => {
+        if (role === "admin") return "/admin/orders";
+        return "/orders";
+    };
+
     return (
         <nav className="flex justify-between items-center px-6 py-4 border-b">
             <div className="font-bold text-xl"><Link href="/">Grocery Shop</Link></div>
@@ -27,11 +32,11 @@ export default function Navbar() {
                 <Link href={getProductsRoute(user?.role)}>
                     Products
                 </Link>
+                <Link href={getOrdersRoute(user?.role)}>
+                    Orders
+                </Link>
                 <Link href="/cart">Cart</Link>
-                <Link href="/orders">Orders</Link>
-
                 <span>{user?.email}</span>
-
                 <button
                     onClick={handleLogout}
                     className="px-3 py-1 border rounded"

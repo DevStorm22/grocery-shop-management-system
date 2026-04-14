@@ -9,13 +9,9 @@ export async function GET(req: Request) {
     try {
         await connectDB();
 
-        const authHeader =
-            req.headers.get("authorization");
+        const authHeader = req.headers.get("authorization");
 
-        if (
-            !authHeader ||
-            !authHeader.startsWith("Bearer ")
-        ) {
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
             return NextResponse.json(
                 {
                     status: 401,

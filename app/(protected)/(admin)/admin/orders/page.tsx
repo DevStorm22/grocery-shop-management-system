@@ -8,27 +8,26 @@ export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [updatingId, setUpdatingId] = useState("");
-
     const [page, setPage] = useState(1);
     const [pages, setPages] = useState(1);
-
     const [statusFilter, setStatusFilter] = useState("ALL");
 
     const fetchOrders = async () => {
         try {
             setLoading(true);
-
-            const url =
-                statusFilter === "ALL"
-                    ? `/protected/admin/order?page=${page}`
-                    : `/protected/admin/order?page=${page}&status=${statusFilter}`;
-
+            const url = statusFilter === "ALL" ? `/protected/admin/order?page=${page}` : `/protected/admin/order?page=${page}&status=${statusFilter}`;
             const res = await api.get(url);
-
+            console.log("Data:", res.data.data.orders);
             setOrders(res.data.data.orders || []);
             setPages(res.data.data.pagination.pages || 1);
-        } catch (error) {
-            toast.error("Failed to fetch orders");
+        } catch (error: any) {
+            console.log(error);
+            console.log(error?.response);
+            console.log(error?.response?.data);
+            toast.error(
+                error?.response?.data?.message ||
+                "Failed to fetch orders"
+            );
         } finally {
             setLoading(false);
         }
@@ -38,13 +37,9 @@ export default function AdminOrdersPage() {
         fetchOrders();
     }, [page, statusFilter]);
 
-    const updateStatus = async (
-        orderId: string,
-        status: string
-    ) => {
+    const updateStatus = async (orderId: string, status: string) => {
         try {
             setUpdatingId(orderId);
-
             await api.patch("/protected/admin/order", {
                 orderId,
                 status,
@@ -143,46 +138,31 @@ export default function AdminOrdersPage() {
                                 <td className="p-3">
                                     <div>
                                         <p className="font-medium">
-                                            {
-                                                order
-                                                    .user
-                                                    ?.name
-                                            }
+                                            {order?.user?.name}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            {
-                                                order
-                                                    .user
-                                                    ?.email
-                                            }
+                                            {order?.user?.email}
                                         </p>
                                     </div>
                                 </td>
 
                                 <td className="p-3">
-                                    ₹
-                                    {
-                                        order.totalAmount
-                                    }
+                                    ₹{order?.totalAmount}
                                 </td>
 
                                 <td className="p-3">
-                                    {
-                                        order.paymentStatus
-                                    }
+                                    {order?.paymentStatus}
                                 </td>
 
                                 <td className="p-3">
                                     <span className="px-2 py-1 text-xs rounded bg-gray-100">
-                                        {
-                                            order.orderStatus
-                                        }
+                                        {order?.orderStatus}
                                     </span>
                                 </td>
 
                                 <td className="p-3">
                                     {new Date(
-                                        order.createdAt
+                                        order?.createdAt
                                     ).toLocaleDateString()}
                                 </td>
 
